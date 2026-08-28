@@ -41,6 +41,15 @@ class PostCreate(BaseModel):
     taggedGroup: Optional[str] = None
 
 
+class PostUpdate(BaseModel):
+    content: Optional[str] = None
+    privacy: Optional[Literal["public", "friends", "only_me"]] = None
+    images: Optional[List[str]] = None
+    feeling: Optional[str] = None
+    location: Optional[str] = None
+    taggedGroup: Optional[str] = None
+
+
 class PostResponse(BaseModel):
     id: str
     author: UserResponse

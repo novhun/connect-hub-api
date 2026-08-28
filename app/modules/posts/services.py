@@ -10,6 +10,7 @@ from .models import Comment, CommentLike, Post, PostMedia, Reaction, SavedPost
 from .schemas import (
     CommentResponse,
     PostCreate,
+    PostUpdate,
     PostResponse,
     ReactionCount,
     ReactionType,
@@ -245,7 +246,39 @@ class PostService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
         post.shares_count = (post.shares_count or 0) + 1
         await db.commit()
-        return post.shares_count
+    async def update_post(
+        self, db: AsyncSession, current_user_id: str, post_id: str, post_update: PostUpdate
+    ) -> PostResponse:
+        stmt = select(Post).options(selectinload(Post.media)).where(Post.id == post_id)
+        result = await db.execute(stmt)
+        post = result.scalars().first()
+        if not post:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+        if post.author_id != current_user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to edit this post"
+            )
+
+        if post_update.content is not None:
+            post.content = post_update.content.strip()
+        if post_update.privacy is not None:
+            post.privacy = post_update.privacy
+        if post_update.feeling is not None:
+            post.feeling = post_update.feeling
+        if post_update.location is not None:
+            post.location = post_update.location
+        if post_update.taggedGroup is not None:
+            post.tagged_group = post_update.taggedGroup
+
+        if post_update.images is not None:
+            for m in list(post.media):
+                await db.delete(m)
+            for img_url in post_update.images:
+                new_media = PostMedia(post_id=post.id, media_url=img_url, media_type="image")
+                db.add(new_media)
+
+        await db.commit()
+        return await self.get_post_by_id(db, post_id, current_user_id)
 
     async def delete_post(self, db: AsyncSession, current_user_id: str, post_id: str) -> bool:
         stmt = select(Post).where(Post.id == post_id)

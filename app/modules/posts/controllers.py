@@ -1,7 +1,7 @@
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.modules.auth.models import User
-from .schemas import CommentCreate, PostCreate, PostResponse, ReactionRequest
+from .schemas import CommentCreate, PostCreate, PostUpdate, PostResponse, ReactionRequest
 from .services import post_service
 
 
@@ -33,6 +33,11 @@ class PostController:
 
     async def create_post(self, db: AsyncSession, current_user: User, post_in: PostCreate) -> PostResponse:
         return await post_service.create_post(db, current_user, post_in)
+
+    async def update_post(
+        self, db: AsyncSession, current_user: User, post_id: str, post_in: PostUpdate
+    ) -> PostResponse:
+        return await post_service.update_post(db, current_user.id, post_id, post_in)
 
     async def react(
         self, db: AsyncSession, current_user: User, post_id: str, rxn_in: ReactionRequest

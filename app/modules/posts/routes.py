@@ -5,7 +5,7 @@ from app.core.database import get_db
 from app.modules.auth.models import User
 from app.modules.auth.services import get_current_user, get_optional_current_user
 from .controllers import post_controller
-from .schemas import CommentCreate, PostCreate, PostResponse, ReactionRequest
+from .schemas import CommentCreate, PostCreate, PostUpdate, PostResponse, ReactionRequest
 
 router = APIRouter(prefix="/posts", tags=["Posts"])
 
@@ -50,6 +50,17 @@ async def create_post(
 ):
     """Create a new post."""
     return await post_controller.create_post(db, current_user, post_in)
+
+
+@router.put("/{post_id}", response_model=PostResponse)
+async def update_post(
+    post_id: str,
+    post_in: PostUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update a post created by current user."""
+    return await post_controller.update_post(db, current_user, post_id, post_in)
 
 
 @router.post("/{post_id}/react", response_model=PostResponse)

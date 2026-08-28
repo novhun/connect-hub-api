@@ -46,10 +46,12 @@ class UserResponse(BaseModel):
     name: str
     email: EmailStr
     avatar: Optional[str] = None
+    coverImage: Optional[str] = Field(default=None, validation_alias="cover_image")
     role: Optional[str] = "Member"
     bio: Optional[str] = None
     jobTitle: Optional[str] = Field(default=None, validation_alias="job_title")
     location: Optional[str] = None
+    website: Optional[str] = None
     isOnline: bool = Field(default=False, validation_alias="is_online")
     lastSeen: Optional[str] = Field(default=None, validation_alias="last_seen")
     isActive: bool = Field(default=True, validation_alias="is_active")

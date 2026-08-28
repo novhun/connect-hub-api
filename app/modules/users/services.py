@@ -37,14 +37,18 @@ class UserService:
             user.name = update_data["name"].strip()
         if "avatar" in update_data and update_data["avatar"]:
             user.avatar = update_data["avatar"]
+        if "cover_image" in update_data or "coverImage" in update_data:
+            user.cover_image = update_data.get("cover_image") or update_data.get("coverImage")
         if "role" in update_data:
             user.role = update_data["role"]
         if "bio" in update_data:
             user.bio = update_data["bio"]
-        if "jobTitle" in update_data:
-            user.job_title = update_data["jobTitle"]
+        if "jobTitle" in update_data or "job_title" in update_data:
+            user.job_title = update_data.get("jobTitle") or update_data.get("job_title")
         if "location" in update_data:
             user.location = update_data["location"]
+        if "website" in update_data:
+            user.website = update_data["website"]
 
         user.updated_at = datetime.now(timezone.utc)
         await db.commit()
