@@ -5,7 +5,14 @@ from app.core.database import get_db
 from app.modules.auth.models import User
 from app.modules.auth.services import get_current_user, get_optional_current_user
 from .controllers import post_controller
-from .schemas import CommentCreate, PostCreate, PostUpdate, PostResponse, ReactionRequest
+from .schemas import (
+    CommentCreate,
+    CommentReactionRequest,
+    PostCreate,
+    PostUpdate,
+    PostResponse,
+    ReactionRequest,
+)
 
 router = APIRouter(prefix="/posts", tags=["Posts"])
 
@@ -83,6 +90,17 @@ async def add_comment(
 ):
     """Add a comment to a post."""
     return await post_controller.add_comment(db, current_user, post_id, comment_in)
+
+
+@router.post("/comments/{comment_id}/react")
+async def react_to_comment(
+    comment_id: str,
+    rxn_in: CommentReactionRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """React or unreact to a comment."""
+    return await post_controller.react_comment(db, current_user, comment_id, rxn_in.reaction)
 
 
 @router.post("/comments/{comment_id}/like")

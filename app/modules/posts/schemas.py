@@ -22,14 +22,34 @@ class CommentResponse(BaseModel):
     timestamp: str
     likes: int = 0
     isLiked: bool = False
+    userReaction: Optional[ReactionType] = None
+    parentId: Optional[str] = None
+    replies: List["CommentResponse"] = Field(default_factory=list)
 
 
 class CommentCreate(BaseModel):
     content: str
+    parentId: Optional[str] = None
+
+
+class CommentReactionRequest(BaseModel):
+    reaction: Optional[ReactionType] = None
 
 
 class ReactionRequest(BaseModel):
     reaction: Optional[ReactionType] = None  # None to remove reaction
+
+
+class SharedPostResponse(BaseModel):
+    id: str
+    author: UserResponse
+    timestamp: str
+    privacy: Literal["public", "friends", "only_me"]
+    content: str
+    images: Optional[List[str]] = None
+    feeling: Optional[str] = None
+    location: Optional[str] = None
+    taggedGroup: Optional[str] = None
 
 
 class PostCreate(BaseModel):
@@ -39,6 +59,7 @@ class PostCreate(BaseModel):
     feeling: Optional[str] = None
     location: Optional[str] = None
     taggedGroup: Optional[str] = None
+    sharedPostId: Optional[str] = None
 
 
 class PostUpdate(BaseModel):
@@ -65,6 +86,8 @@ class PostResponse(BaseModel):
     feeling: Optional[str] = None
     location: Optional[str] = None
     taggedGroup: Optional[str] = None
+    sharedPostId: Optional[str] = None
+    sharedPost: Optional[SharedPostResponse] = None
 
 
 class PostListResponse(BaseModel):

@@ -70,10 +70,12 @@ connect-hub-api/
 ## 🚀 Quick Start Guide
 
 ### 1. Prerequisites
+
 - Python 3.10+
 - Virtualenv (`python3 -m venv`)
 
 ### 2. Setup Virtual Environment & Dependencies
+
 ```bash
 # Navigate to the API folder
 cd connect-hub-api
@@ -87,12 +89,15 @@ pip install -r requirements.txt
 ```
 
 ### 3. Environment Variables
+
 Copy `.env.example` to `.env`:
+
 ```bash
 cp .env.example .env
 ```
 
 Key environment variables in `.env`:
+
 ```env
 APP_NAME="Connect-Hub API"
 PORT=8008
@@ -116,12 +121,15 @@ SMTP_PASSWORD=""
 ```
 
 ### 4. Seed Database with Rich Demo Data
+
 ```bash
 python scripts/seed_data.py
 ```
+
 > Seeds active user accounts (`sokun@connecthub.app` / `password123`), multi-image posts, stories, groups, chat history, and notifications.
 
 ### 5. Run the Server
+
 ```bash
 ./scripts/run.sh
 # or directly with uvicorn:
@@ -133,6 +141,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 8008 --reload
 ## 📖 Interactive API Documentation
 
 Once the server is running on `http://localhost:8008`:
+
 - **Swagger UI**: [http://localhost:8008/docs](http://localhost:8008/docs)
 - **ReDoc**: [http://localhost:8008/redoc](http://localhost:8008/redoc)
 - **Health Check**: [http://localhost:8008/health](http://localhost:8008/health)
@@ -142,16 +151,19 @@ Once the server is running on `http://localhost:8008`:
 ## 🗄️ Database Migrations (Alembic)
 
 Generate a new migration:
+
 ```bash
 alembic revision --autogenerate -m "describe_changes"
 ```
 
 Apply all pending migrations:
+
 ```bash
 alembic upgrade head
 ```
 
 Rollback the last migration:
+
 ```bash
 alembic downgrade -1
 ```
@@ -161,6 +173,7 @@ alembic downgrade -1
 ## 🧪 Running Automated Tests
 
 Run the test suite using `pytest`:
+
 ```bash
 pytest -v
 ```
@@ -169,41 +182,41 @@ pytest -v
 
 ## 📡 REST & WebSocket Endpoints Summary
 
-| Module | Method | Route | Description |
-|---|---|---|---|
-| **Health** | `GET` | `/health` | Server and database health check |
-| **Auth** | `POST` | `/api/v1/auth/register` | Register new user |
-| **Auth** | `POST` | `/api/v1/auth/login` | Email/password JWT login |
-| **Auth** | `POST` | `/api/v1/auth/google` | Google OAuth ID token login |
-| **Auth** | `GET` | `/api/v1/auth/me` | Get current authenticated user profile |
-| **Users** | `GET` | `/api/v1/users` | List community members & online status |
-| **Users** | `PUT` | `/api/v1/users/profile` | Update profile bio, avatar, and details |
-| **Users** | `PATCH`| `/api/v1/users/presence` | Update online/offline presence |
-| **Posts** | `GET` | `/api/v1/posts` | List posts feed (with group/saved filters) |
-| **Posts** | `POST` | `/api/v1/posts` | Create a new post |
-| **Posts** | `POST` | `/api/v1/posts/{id}/react` | React to post (`like`, `love`, `care`, etc.) |
-| **Posts** | `POST` | `/api/v1/posts/{id}/comments` | Add comment to post |
-| **Posts** | `POST` | `/api/v1/posts/{id}/save` | Toggle save/bookmark post |
-| **Posts** | `POST` | `/api/v1/posts/{id}/share` | Increment post share count |
-| **Posts** | `DELETE`| `/api/v1/posts/{id}` | Delete post |
-| **Stories** | `GET` | `/api/v1/stories` | List active 24-hour stories |
-| **Stories** | `POST` | `/api/v1/stories` | Upload and publish a story |
-| **Stories** | `POST` | `/api/v1/stories/{id}/view` | Mark story as viewed |
-| **Stories** | `DELETE`| `/api/v1/stories/{id}` | Delete a story |
-| **Groups** | `GET` | `/api/v1/groups` | List community groups |
-| **Groups** | `POST` | `/api/v1/groups` | Create a new community group |
-| **Groups** | `POST` | `/api/v1/groups/{id}/join` | Join a community group |
-| **Groups** | `POST` | `/api/v1/groups/{id}/leave` | Leave a community group |
-| **Chat** | `GET` | `/api/v1/chat/{user_id}` | Retrieve chat message history |
-| **Chat** | `POST` | `/api/v1/chat/{user_id}` | Send a direct message |
-| **Chat** | `POST` | `/api/v1/chat/{user_id}/read` | Mark conversation messages as read |
-| **Chat (WS)** | `WS` | `/api/v1/chat/ws/{user_id}` | Real-time duplex chat WebSocket |
-| **Calls** | `POST` | `/api/v1/calls/initiate` | Start audio/video call session |
-| **Calls** | `PATCH`| `/api/v1/calls/{id}/status` | Update call status & duration |
-| **Calls** | `GET` | `/api/v1/calls/history` | Retrieve user call history |
-| **PeerJS** | `GET` | `/peerjs/id` | Generate unique PeerJS WebRTC ID |
-| **PeerJS (WS)**| `WS` | `/ws/peerjs/{peer_id}` | Real-time WebRTC PeerJS signaling |
-| **Media** | `POST` | `/api/v1/media/upload` | Multipart file upload (S3/R2/Local) |
-| **Notifications** | `GET` | `/api/v1/notifications` | List user notifications |
-| **Notifications** | `POST` | `/api/v1/notifications/{id}/read` | Mark single notification as read |
-| **Notifications** | `POST` | `/api/v1/notifications/read-all` | Mark all notifications as read |
+| Module                  | Method     | Route                               | Description                                        |
+| ----------------------- | ---------- | ----------------------------------- | -------------------------------------------------- |
+| **Health**        | `GET`    | `/health`                         | Server and database health check                   |
+| **Auth**          | `POST`   | `/api/v1/auth/register`           | Register new user                                  |
+| **Auth**          | `POST`   | `/api/v1/auth/login`              | Email/password JWT login                           |
+| **Auth**          | `POST`   | `/api/v1/auth/google`             | Google OAuth ID token login                        |
+| **Auth**          | `GET`    | `/api/v1/auth/me`                 | Get current authenticated user profile             |
+| **Users**         | `GET`    | `/api/v1/users`                   | List community members & online status             |
+| **Users**         | `PUT`    | `/api/v1/users/profile`           | Update profile bio, avatar, and details            |
+| **Users**         | `PATCH`  | `/api/v1/users/presence`          | Update online/offline presence                     |
+| **Posts**         | `GET`    | `/api/v1/posts`                   | List posts feed (with group/saved filters)         |
+| **Posts**         | `POST`   | `/api/v1/posts`                   | Create a new post                                  |
+| **Posts**         | `POST`   | `/api/v1/posts/{id}/react`        | React to post (`like`, `love`, `care`, etc.) |
+| **Posts**         | `POST`   | `/api/v1/posts/{id}/comments`     | Add comment to post                                |
+| **Posts**         | `POST`   | `/api/v1/posts/{id}/save`         | Toggle save/bookmark post                          |
+| **Posts**         | `POST`   | `/api/v1/posts/{id}/share`        | Increment post share count                         |
+| **Posts**         | `DELETE` | `/api/v1/posts/{id}`              | Delete post                                        |
+| **Stories**       | `GET`    | `/api/v1/stories`                 | List active 24-hour stories                        |
+| **Stories**       | `POST`   | `/api/v1/stories`                 | Upload and publish a story                         |
+| **Stories**       | `POST`   | `/api/v1/stories/{id}/view`       | Mark story as viewed                               |
+| **Stories**       | `DELETE` | `/api/v1/stories/{id}`            | Delete a story                                     |
+| **Groups**        | `GET`    | `/api/v1/groups`                  | List community groups                              |
+| **Groups**        | `POST`   | `/api/v1/groups`                  | Create a new community group                       |
+| **Groups**        | `POST`   | `/api/v1/groups/{id}/join`        | Join a community group                             |
+| **Groups**        | `POST`   | `/api/v1/groups/{id}/leave`       | Leave a community group                            |
+| **Chat**          | `GET`    | `/api/v1/chat/{user_id}`          | Retrieve chat message history                      |
+| **Chat**          | `POST`   | `/api/v1/chat/{user_id}`          | Send a direct message                              |
+| **Chat**          | `POST`   | `/api/v1/chat/{user_id}/read`     | Mark conversation messages as read                 |
+| **Chat (WS)**     | `WS`     | `/api/v1/chat/ws/{user_id}`       | Real-time duplex chat WebSocket                    |
+| **Calls**         | `POST`   | `/api/v1/calls/initiate`          | Start audio/video call session                     |
+| **Calls**         | `PATCH`  | `/api/v1/calls/{id}/status`       | Update call status & duration                      |
+| **Calls**         | `GET`    | `/api/v1/calls/history`           | Retrieve user call history                         |
+| **PeerJS**        | `GET`    | `/peerjs/id`                      | Generate unique PeerJS WebRTC ID                   |
+| **PeerJS (WS)**   | `WS`     | `/ws/peerjs/{peer_id}`            | Real-time WebRTC PeerJS signaling                  |
+| **Media**         | `POST`   | `/api/v1/media/upload`            | Multipart file upload (S3/R2/Local)                |
+| **Notifications** | `GET`    | `/api/v1/notifications`           | List user notifications                            |
+| **Notifications** | `POST`   | `/api/v1/notifications/{id}/read` | Mark single notification as read                   |
+| **Notifications** | `POST`   | `/api/v1/notifications/read-all`  | Mark all notifications as read                     |

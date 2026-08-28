@@ -20,6 +20,7 @@ class Post(Base):
     location = Column(String(255), nullable=True)
     tagged_group = Column(String(100), nullable=True)
     shares_count = Column(Integer, default=0)
+    shared_post_id = Column(String(64), ForeignKey("posts.id", ondelete="SET NULL"), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = Column(
         DateTime(timezone=True),
@@ -33,6 +34,7 @@ class Post(Base):
     reactions = relationship("Reaction", back_populates="post", cascade="all, delete-orphan")
     comments = relationship("Comment", back_populates="post", cascade="all, delete-orphan", order_by="Comment.created_at")
     saved_by = relationship("SavedPost", back_populates="post", cascade="all, delete-orphan")
+    shared_post = relationship("Post", remote_side=[id], foreign_keys=[shared_post_id], lazy="selectin")
 
 
 class PostMedia(Base):
@@ -67,12 +69,15 @@ class Comment(Base):
     id = Column(String(64), primary_key=True, default=generate_uuid, index=True)
     post_id = Column(String(64), ForeignKey("posts.id", ondelete="CASCADE"), nullable=False, index=True)
     user_id = Column(String(64), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    parent_id = Column(String(64), ForeignKey("comments.id", ondelete="CASCADE"), nullable=True, index=True)
     content = Column(Text, nullable=False)
     likes_count = Column(Integer, default=0)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     post = relationship("Post", back_populates="comments")
     user = relationship("User", back_populates="comments")
+    parent = relationship("Comment", remote_side=[id], back_populates="replies", foreign_keys=[parent_id])
+    replies = relationship("Comment", back_populates="parent", cascade="all, delete-orphan", order_by="Comment.created_at", foreign_keys=[parent_id])
     likes = relationship("CommentLike", back_populates="comment", cascade="all, delete-orphan")
 
 
@@ -83,6 +88,7 @@ class CommentLike(Base):
     id = Column(String(64), primary_key=True, default=generate_uuid, index=True)
     comment_id = Column(String(64), ForeignKey("comments.id", ondelete="CASCADE"), nullable=False, index=True)
     user_id = Column(String(64), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    reaction_type = Column(String(20), default="like")  # 'like', 'love', 'care', 'haha', 'wow', 'sad', 'angry'
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     comment = relationship("Comment", back_populates="likes")

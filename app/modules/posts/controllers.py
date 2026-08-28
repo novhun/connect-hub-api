@@ -47,7 +47,15 @@ class PostController:
     async def add_comment(
         self, db: AsyncSession, current_user: User, post_id: str, comment_in: CommentCreate
     ) -> PostResponse:
-        return await post_service.add_comment(db, current_user, post_id, comment_in.content)
+        return await post_service.add_comment(
+            db, current_user, post_id, comment_in.content, comment_in.parentId
+        )
+
+    async def react_comment(
+        self, db: AsyncSession, current_user: User, comment_id: str, reaction_type: Optional[str]
+    ) -> dict:
+        result = await post_service.react_comment(db, current_user.id, comment_id, reaction_type)
+        return {"success": True, **result}
 
     async def toggle_comment_like(self, db: AsyncSession, current_user: User, comment_id: str) -> dict:
         liked = await post_service.toggle_comment_like(db, current_user.id, comment_id)
