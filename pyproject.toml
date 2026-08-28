@@ -4,22 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "connect-hub-api"
-version = "1.0.0"
-description = "Connect-Hub FastAPI Modular MVC Backend with SQLAlchemy 2.0, Multi-DB support, PeerJS WebRTC, and S3/R2 storage"
-readme = "README.md"
-requires-python = ">=3.10"
-authors = [
-    { name = "Connect-Hub Team", email = "dev@connecthub.app" }
-]
-keywords = [
-    "fastapi",
-    "social-network",
-    "webrtc",
-    "peerjs",
-    "sqlalchemy",
-    "websockets",
-    "alembic"
-]
+version = "0.1.0"
+requires-python = ">=3.9, <3.13"
 dynamic = ["dependencies"]
 
 [tool.uv]
@@ -30,15 +16,10 @@ package-dir = { "" = "." }
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["app*"]
+include = ["app"]
 
 [tool.setuptools.dynamic]
-dependencies = { file = ["requirements.txt"] }
+dependencies = {file = ["requirements.txt"]}
 
 [tool.fastapi]
 entrypoint = "app.main:app"
-
-[tool.pytest.ini_options]
-asyncio_mode = "auto"
-testpaths = ["tests"]
-python_files = ["test_*.py"]

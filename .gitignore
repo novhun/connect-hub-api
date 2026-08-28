@@ -18,6 +18,8 @@ ENV/
 .env
 !.env.example
 .env.production
+.env.development
+
 # Uploaded media (local storage fallback)
 uploads/
 storage/

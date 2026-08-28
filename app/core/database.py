@@ -24,7 +24,9 @@ def get_normalized_db_url(raw_url: str) -> str:
         return "sqlite+aiosqlite:///./connect_hub.db"
     
     url = raw_url.strip()
-    if url.startswith("postgres://"):
+    if url.startswith("spostgresql://"):
+        url = url.replace("spostgresql://", "postgresql+asyncpg://", 1)
+    elif url.startswith("postgres://"):
         url = url.replace("postgres://", "postgresql+asyncpg://", 1)
     elif url.startswith("postgresql://") and not url.startswith("postgresql+asyncpg://"):
         url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
@@ -46,6 +48,9 @@ else:
     engine_kwargs["pool_pre_ping"] = True
     engine_kwargs["pool_size"] = 10
     engine_kwargs["max_overflow"] = 20
+    # Handle Supabase / PgBouncer transaction pooler mode
+    if "postgresql+asyncpg" in normalized_url and (":6543" in normalized_url or "pooler" in normalized_url):
+        engine_kwargs["connect_args"] = {"statement_cache_size": 0}
 
 async_engine: AsyncEngine = create_async_engine(normalized_url, **engine_kwargs)
 
