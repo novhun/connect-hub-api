@@ -1,7 +1,7 @@
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.modules.auth.models import User
-from .schemas import GroupCreate, GroupResponse, GroupUpdate
+from .schemas import GroupCreate, GroupMemberResponse, GroupResponse, GroupUpdate
 from .services import group_service
 
 
@@ -22,6 +22,16 @@ class GroupController:
         self, db: AsyncSession, current_user: User, group_in: GroupCreate
     ) -> GroupResponse:
         return await group_service.create_group(db, current_user, group_in)
+
+    async def update_group(
+        self, db: AsyncSession, current_user: User, group_id: str, group_in: GroupUpdate
+    ) -> GroupResponse:
+        return await group_service.update_group(db, current_user, group_id, group_in)
+
+    async def get_members(
+        self, db: AsyncSession, group_id: str
+    ) -> List[GroupMemberResponse]:
+        return await group_service.get_group_members(db, group_id)
 
     async def join_group(
         self, db: AsyncSession, current_user: User, group_id: str

@@ -15,7 +15,12 @@ class Message(Base):
     id = Column(String(64), primary_key=True, default=generate_uuid, index=True)
     sender_id = Column(String(64), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     receiver_id = Column(String(64), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    text = Column(Text, nullable=False)
+    text = Column(Text, default="", nullable=False)
+    message_type = Column(String(32), default="text", nullable=True)  # 'text', 'voice', 'file', 'sticker', 'image'
+    media_url = Column(Text, nullable=True)
+    file_name = Column(String(255), nullable=True)
+    file_size = Column(String(32), nullable=True)
+    duration = Column(String(32), nullable=True)
     is_read = Column(Boolean, default=False, index=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), index=True)
 

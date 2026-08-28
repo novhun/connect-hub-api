@@ -5,7 +5,7 @@ from app.core.database import get_db
 from app.modules.auth.models import User
 from app.modules.auth.services import get_current_user, get_optional_current_user
 from .controllers import group_controller
-from .schemas import GroupCreate, GroupResponse
+from .schemas import GroupCreate, GroupMemberResponse, GroupResponse, GroupUpdate
 
 router = APIRouter(prefix="/groups", tags=["Groups"])
 
@@ -31,6 +31,15 @@ async def get_group(
     return await group_controller.get_group(db, group_id, current_user)
 
 
+@router.get("/{group_id}/members", response_model=List[GroupMemberResponse])
+async def get_group_members(
+    group_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """Get all joined members of the group."""
+    return await group_controller.get_members(db, group_id)
+
+
 @router.post("", response_model=GroupResponse, status_code=status.HTTP_201_CREATED)
 async def create_group(
     group_in: GroupCreate,
@@ -39,6 +48,17 @@ async def create_group(
 ):
     """Create a new group community."""
     return await group_controller.create_group(db, current_user, group_in)
+
+
+@router.put("/{group_id}", response_model=GroupResponse)
+async def update_group(
+    group_id: str,
+    group_in: GroupUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update group details (Admin/Creator only)."""
+    return await group_controller.update_group(db, current_user, group_id, group_in)
 
 
 @router.post("/{group_id}/join", response_model=GroupResponse)

@@ -6,13 +6,23 @@ from app.modules.auth.schemas import UserResponse
 class DirectMessage(BaseModel):
     id: str
     senderId: str
-    text: str
+    text: str = ""
     timestamp: str
     isMe: bool
+    messageType: Optional[str] = "text"  # 'text', 'voice', 'file', 'sticker', 'image'
+    mediaUrl: Optional[str] = None
+    fileName: Optional[str] = None
+    fileSize: Optional[str] = None
+    duration: Optional[str] = None
 
 
 class SendMessageRequest(BaseModel):
-    text: str
+    text: Optional[str] = ""
+    messageType: Optional[str] = "text"
+    mediaUrl: Optional[str] = None
+    fileName: Optional[str] = None
+    fileSize: Optional[str] = None
+    duration: Optional[str] = None
 
 
 class ConversationSummary(BaseModel):

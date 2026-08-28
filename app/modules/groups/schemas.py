@@ -34,3 +34,17 @@ class GroupResponse(BaseModel):
     isManaged: bool = False
     joined: bool = False
     recentPostsCount: int = 0
+
+
+class GroupMemberResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+    id: str
+    userId: str = Field(..., validation_alias="user_id")
+    name: str
+    username: str
+    avatar: Optional[str] = None
+    headline: Optional[str] = None
+    role: str = "member"  # 'admin', 'moderator', 'member'
+    isCreator: bool = False
+    joinedAt: str

@@ -5,7 +5,7 @@ from app.core.database import get_db
 from app.modules.auth.models import User
 from app.modules.auth.services import get_current_user, get_optional_current_user
 from .controllers import event_controller
-from .schemas import EventCreate, EventResponse
+from .schemas import EventCreate, EventMemberResponse, EventResponse, EventUpdate
 
 router = APIRouter(prefix="/events", tags=["Events"])
 
@@ -31,6 +31,16 @@ async def get_event(
     return await event_controller.get_event(db, event_id, current_user)
 
 
+@router.get("/{event_id}/members", response_model=List[EventMemberResponse])
+@router.get("/{event_id}/attendees", response_model=List[EventMemberResponse])
+async def get_event_members(
+    event_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """Get list of all members/attendees joining this event."""
+    return await event_controller.get_members(db, event_id)
+
+
 @router.post("", response_model=EventResponse, status_code=status.HTTP_201_CREATED)
 async def create_event(
     data: EventCreate,
@@ -39,6 +49,17 @@ async def create_event(
 ):
     """Create a new community event."""
     return await event_controller.create_event(db, current_user, data)
+
+
+@router.put("/{event_id}", response_model=EventResponse)
+async def update_event(
+    event_id: str,
+    data: EventUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Edit an event created by the current user."""
+    return await event_controller.update_event(db, current_user, event_id, data)
 
 
 @router.post("/{event_id}/attend", response_model=EventResponse)

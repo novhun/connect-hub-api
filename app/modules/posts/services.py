@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from app.modules.auth.models import User
 from app.modules.auth.schemas import UserResponse
+from app.modules.friends.models import FriendRequest
 from .models import Comment, CommentLike, Post, PostMedia, Reaction, SavedPost
 from .schemas import (
     CommentResponse,
@@ -121,6 +122,35 @@ class PostService:
     ) -> List[PostResponse]:
         query = await self.get_posts_query()
 
+        # Enforce Privacy Filters
+        if not current_user_id:
+            # Anonymous / non-logged in users can ONLY view public posts
+            query = query.where(Post.privacy == "public")
+        else:
+            # Find accepted friends of the current user
+            friend_stmt = select(FriendRequest).where(
+                (FriendRequest.sender_id == current_user_id) | (FriendRequest.receiver_id == current_user_id),
+                FriendRequest.status == "accepted",
+            )
+            friend_res = await db.execute(friend_stmt)
+            friend_rows = friend_res.scalars().all()
+            friend_ids = {
+                fr.receiver_id if fr.sender_id == current_user_id else fr.sender_id
+                for fr in friend_rows
+            }
+
+            if friend_ids:
+                query = query.where(
+                    (Post.privacy == "public")
+                    | (Post.author_id == current_user_id)  # Own posts (including only_me and friends)
+                    | ((Post.privacy == "friends") & (Post.author_id.in_(list(friend_ids))))  # Friends' posts
+                )
+            else:
+                query = query.where(
+                    (Post.privacy == "public")
+                    | (Post.author_id == current_user_id)  # Own posts (including only_me)
+                )
+
         if group_name:
             query = query.where(Post.tagged_group == group_name)
         if author_id:
@@ -144,6 +174,25 @@ class PostService:
         post = result.scalars().first()
         if not post:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+
+        # Enforce single post privacy
+        if post.privacy == "only_me" and post.author_id != current_user_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This post is private (Only Me)")
+        if post.privacy == "friends" and post.author_id != current_user_id:
+            if not current_user_id:
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This post is visible to friends only")
+            friend_stmt = select(FriendRequest).where(
+                (FriendRequest.sender_id == current_user_id) | (FriendRequest.receiver_id == current_user_id),
+                FriendRequest.status == "accepted",
+            )
+            friend_res = await db.execute(friend_stmt)
+            friend_ids = {
+                fr.receiver_id if fr.sender_id == current_user_id else fr.sender_id
+                for fr in friend_res.scalars().all()
+            }
+            if post.author_id not in friend_ids:
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This post is visible to friends only")
+
         return await self._format_post(db, post, current_user_id)
 
     async def create_post(self, db: AsyncSession, current_user: User, post_in: PostCreate) -> PostResponse:

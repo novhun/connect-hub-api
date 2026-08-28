@@ -1,7 +1,7 @@
 from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.modules.auth.models import User
-from .schemas import DirectMessage, SendMessageRequest
+from .schemas import ConversationSummary, DirectMessage, SendMessageRequest
 from .services import chat_service
 
 
@@ -25,6 +25,11 @@ class ChatController:
             sender_id=current_user.id,
             receiver_id=receiver_id,
             text=data.text,
+            message_type=data.messageType,
+            media_url=data.mediaUrl,
+            file_name=data.fileName,
+            file_size=data.fileSize,
+            duration=data.duration,
         )
 
     async def mark_as_read(
@@ -33,5 +38,11 @@ class ChatController:
         await chat_service.mark_conversation_as_read(db, current_user.id, sender_id)
         return {"success": True}
 
+    async def get_conversations(
+        self, db: AsyncSession, current_user: User
+    ) -> List[ConversationSummary]:
+        return await chat_service.get_conversations(db=db, current_user_id=current_user.id)
+
 
 chat_controller = ChatController()
+

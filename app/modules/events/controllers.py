@@ -1,7 +1,7 @@
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.modules.auth.models import User
-from .schemas import EventCreate, EventResponse
+from .schemas import EventCreate, EventMemberResponse, EventResponse, EventUpdate
 from .services import event_service
 
 
@@ -22,6 +22,16 @@ class EventController:
         self, db: AsyncSession, current_user: User, data: EventCreate
     ) -> EventResponse:
         return await event_service.create_event(db, current_user, data)
+
+    async def update_event(
+        self, db: AsyncSession, current_user: User, event_id: str, data: EventUpdate
+    ) -> EventResponse:
+        return await event_service.update_event(db, current_user, event_id, data)
+
+    async def get_members(
+        self, db: AsyncSession, event_id: str
+    ) -> List[EventMemberResponse]:
+        return await event_service.get_event_members(db, event_id)
 
     async def attend_event(
         self, db: AsyncSession, current_user: User, event_id: str

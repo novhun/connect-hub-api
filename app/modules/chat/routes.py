@@ -8,11 +8,20 @@ from app.core.security import decode_access_token
 from app.modules.auth.models import User
 from app.modules.auth.services import auth_service, get_current_user
 from .controllers import chat_controller
-from .schemas import DirectMessage, SendMessageRequest
+from .schemas import ConversationSummary, DirectMessage, SendMessageRequest
 from .services import chat_manager, chat_service
 
 logger = logging.getLogger("connect_hub.chat_routes")
 router = APIRouter(prefix="/chat", tags=["Chat & Messaging"])
+
+
+@router.get("/conversations", response_model=List[ConversationSummary])
+async def get_conversations(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Retrieve all conversations (friends and anyone who ever chatted with current user)."""
+    return await chat_controller.get_conversations(db=db, current_user=current_user)
 
 
 @router.get("/{user_id}", response_model=List[DirectMessage])

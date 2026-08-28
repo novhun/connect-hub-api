@@ -6,7 +6,7 @@ from sqlalchemy.orm import selectinload
 from app.modules.auth.models import User
 from app.modules.posts.models import Post
 from .models import Group, GroupMember
-from .schemas import GroupCreate, GroupResponse, GroupUpdate
+from .schemas import GroupCreate, GroupMemberResponse, GroupResponse, GroupUpdate
 
 
 def format_members_count(count: int) -> str:
@@ -131,6 +131,79 @@ class GroupService:
             await db.delete(member)
             await db.commit()
         return await self.get_group_by_id(db, group_id, current_user.id)
+
+    async def update_group(
+        self, db: AsyncSession, current_user: User, group_id: str, data: GroupUpdate
+    ) -> GroupResponse:
+        stmt = select(Group).options(selectinload(Group.members)).where(Group.id == group_id)
+        result = await db.execute(stmt)
+        group = result.scalars().first()
+        if not group:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group not found")
+        if group.creator_id != current_user.id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
+
+        if data.name is not None:
+            new_name = data.name.strip()
+            if new_name != group.name:
+                # Check duplicate
+                check_stmt = select(Group).where(Group.name == new_name)
+                check_res = await db.execute(check_stmt)
+                if check_res.scalars().first():
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST, detail="A group with this name already exists"
+                    )
+                group.name = new_name
+
+        if data.icon is not None:
+            group.icon = data.icon
+        if data.coverImage is not None:
+            group.cover_image = data.coverImage or None
+        if data.description is not None:
+            group.description = data.description.strip()
+        if data.isPrivate is not None:
+            group.is_private = data.isPrivate
+
+        await db.commit()
+        await db.refresh(group)
+        return await self.get_group_by_id(db, group.id, current_user.id)
+
+    async def get_group_members(
+        self, db: AsyncSession, group_id: str
+    ) -> List[GroupMemberResponse]:
+        stmt = select(Group).where(Group.id == group_id)
+        result = await db.execute(stmt)
+        group = result.scalars().first()
+        if not group:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group not found")
+
+        stmt_members = (
+            select(GroupMember, User)
+            .join(User, GroupMember.user_id == User.id)
+            .where(GroupMember.group_id == group_id)
+            .order_by(GroupMember.joined_at.asc())
+        )
+        res = await db.execute(stmt_members)
+        rows = res.all()
+
+        members = []
+        for member, user in rows:
+            uname = getattr(user, "username", None) or (user.email.split("@")[0] if user.email else user.name.lower().replace(" ", ""))
+            headline = user.job_title or user.role or user.bio
+            members.append(
+                GroupMemberResponse(
+                    id=member.id,
+                    user_id=user.id,
+                    name=user.name,
+                    username=uname,
+                    avatar=user.avatar,
+                    headline=headline,
+                    role=member.role,
+                    isCreator=user.id == group.creator_id,
+                    joinedAt=member.joined_at.isoformat() if member.joined_at else "",
+                )
+            )
+        return members
 
     async def delete_group(self, db: AsyncSession, current_user: User, group_id: str) -> bool:
         stmt = select(Group).where(Group.id == group_id)

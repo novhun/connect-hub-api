@@ -5,7 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.modules.auth.models import User
 from .models import Event, EventAttendee
-from .schemas import EventCreate, EventResponse
+from .schemas import EventCreate, EventMemberResponse, EventResponse, EventUpdate
 
 
 def ensure_utc(dt: datetime) -> datetime:
@@ -120,6 +120,70 @@ class EventService:
             await db.delete(attendee)
             await db.commit()
         return await self.get_event_by_id(db, event_id, current_user.id)
+
+    async def update_event(
+        self, db: AsyncSession, current_user: User, event_id: str, data: EventUpdate
+    ) -> EventResponse:
+        stmt = select(Event).where(Event.id == event_id)
+        result = await db.execute(stmt)
+        event = result.scalars().first()
+        if not event:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
+        if event.creator_id != current_user.id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
+
+        if data.title is not None:
+            event.title = data.title.strip()
+        if data.description is not None:
+            event.description = data.description.strip() or None
+        if data.location is not None:
+            event.location = data.location.strip()
+        if data.category is not None:
+            event.category = data.category.strip() or None
+        if data.coverImage is not None:
+            event.cover_image = data.coverImage or None
+        if data.startAt is not None:
+            event.start_at = data.startAt
+
+        await db.commit()
+        await db.refresh(event)
+        return await self.get_event_by_id(db, event.id, current_user.id)
+
+    async def get_event_members(
+        self, db: AsyncSession, event_id: str
+    ) -> List[EventMemberResponse]:
+        stmt = select(Event).where(Event.id == event_id)
+        result = await db.execute(stmt)
+        event = result.scalars().first()
+        if not event:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
+
+        stmt_attendees = (
+            select(EventAttendee, User)
+            .join(User, EventAttendee.user_id == User.id)
+            .where(EventAttendee.event_id == event_id)
+            .order_by(EventAttendee.joined_at.asc())
+        )
+        res = await db.execute(stmt_attendees)
+        rows = res.all()
+
+        members = []
+        for attendee, user in rows:
+            uname = getattr(user, "username", None) or (user.email.split("@")[0] if user.email else user.name.lower().replace(" ", ""))
+            headline = user.job_title or user.role or user.bio
+            members.append(
+                EventMemberResponse(
+                    id=attendee.id,
+                    user_id=user.id,
+                    name=user.name,
+                    username=uname,
+                    avatar=user.avatar,
+                    headline=headline,
+                    isCreator=user.id == event.creator_id,
+                    joinedAt=ensure_utc(attendee.joined_at).isoformat(),
+                )
+            )
+        return members
 
     async def delete_event(self, db: AsyncSession, current_user: User, event_id: str) -> bool:
         stmt = select(Event).where(Event.id == event_id)
