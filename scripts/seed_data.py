@@ -16,6 +16,11 @@ from app.modules.groups.models import Group, GroupMember
 from app.modules.notifications.models import Notification
 from app.modules.posts.models import Comment, Post, PostMedia, Reaction, SavedPost
 from app.modules.stories.models import Story
+import app.modules.events.models
+import app.modules.support.models
+import app.modules.settings.models
+import app.modules.friends.models
+from sqlalchemy import text
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("seed_data")
@@ -26,7 +31,11 @@ async def seed():
     
     # Recreate tables to guarantee clean state
     async with async_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+        if async_engine.dialect.name == "postgresql":
+            await conn.execute(text("DROP SCHEMA public CASCADE;"))
+            await conn.execute(text("CREATE SCHEMA public;"))
+        else:
+            await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
 
     async with AsyncSessionLocal() as db:
