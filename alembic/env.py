@@ -60,26 +60,9 @@ def do_run_migrations(connection: Connection) -> None:
 
 
 async def run_async_migrations() -> None:
-    configuration = config.get_section(config.config_ini_section, {})
-    db_url = get_url()
-    configuration["sqlalchemy.url"] = db_url
-
-    engine_kwargs = {
-        "prefix": "sqlalchemy.",
-        "poolclass": pool.NullPool,
-    }
-    if "postgresql+asyncpg" in db_url and (":6543" in db_url or "pooler" in db_url):
-        engine_kwargs["connect_args"] = {"statement_cache_size": 0}
-
-    connectable = async_engine_from_config(
-        configuration,
-        **engine_kwargs,
-    )
-
-    async with connectable.connect() as connection:
+    from app.core.database import async_engine
+    async with async_engine.connect() as connection:
         await connection.run_sync(do_run_migrations)
-
-    await connectable.dispose()
 
 
 def run_migrations_online() -> None:
