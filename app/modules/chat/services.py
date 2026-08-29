@@ -33,6 +33,19 @@ class ChatManager:
     def is_online(self, user_id: str) -> bool:
         return user_id in self.active_connections
 
+    def get_online_user_ids(self) -> List[str]:
+        return list(self.active_connections.keys())
+
+    async def broadcast(self, message_payload: dict, exclude_user_id: Optional[str] = None):
+        """Broadcast a real-time event to all active connected users."""
+        for uid, ws in list(self.active_connections.items()):
+            if exclude_user_id and uid == exclude_user_id:
+                continue
+            try:
+                await ws.send_text(json.dumps(message_payload))
+            except Exception as e:
+                logger.warning(f"Error broadcasting to user {uid}: {e}")
+
     async def send_personal_message(self, receiver_id: str, message_payload: dict) -> bool:
         if receiver_id in self.active_connections:
             ws = self.active_connections[receiver_id]

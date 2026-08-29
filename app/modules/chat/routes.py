@@ -90,6 +90,34 @@ async def websocket_chat_endpoint(websocket: WebSocket, user_id: str, token: str
         return
 
     await chat_manager.connect(user_id, websocket)
+
+    # 1. Update user is_online status in DB and notify peers
+    try:
+        async with AsyncSessionLocal() as session:
+            db_user = await session.get(User, user_id)
+            if db_user:
+                db_user.is_online = True
+                await session.commit()
+    except Exception as e:
+        logger.warning(f"Failed to update online state for {user_id}: {e}")
+
+    # 2. Send current online user list to this newly connected client
+    online_ids = chat_manager.get_online_user_ids()
+    await websocket.send_text(json.dumps({
+        "type": "PRESENCE_SYNC",
+        "onlineUserIds": online_ids,
+    }))
+
+    # 3. Broadcast this user's online presence to all other connected users
+    await chat_manager.broadcast(
+        {
+            "type": "USER_PRESENCE",
+            "userId": user_id,
+            "isOnline": True,
+        },
+        exclude_user_id=user_id,
+    )
+
     try:
         while True:
             data = await websocket.receive_text()
@@ -97,7 +125,10 @@ async def websocket_chat_endpoint(websocket: WebSocket, user_id: str, token: str
                 msg = json.loads(data)
                 msg_type = msg.get("type")
 
-                if msg_type == "SEND_MESSAGE":
+                if msg_type == "PING":
+                    await websocket.send_text(json.dumps({"type": "PONG"}))
+
+                elif msg_type == "SEND_MESSAGE":
                     target_id = msg.get("receiverId")
                     text = msg.get("text")
                     if target_id and text:
@@ -121,3 +152,18 @@ async def websocket_chat_endpoint(websocket: WebSocket, user_id: str, token: str
                 logger.error(f"Error handling websocket frame from {user_id}: {e}")
     except WebSocketDisconnect:
         chat_manager.disconnect(user_id)
+        # Update user offline state in DB and broadcast to peers
+        try:
+            async with AsyncSessionLocal() as session:
+                db_user = await session.get(User, user_id)
+                if db_user:
+                    db_user.is_online = False
+                    await session.commit()
+        except Exception as e:
+            logger.warning(f"Failed to update offline state for {user_id}: {e}")
+
+        await chat_manager.broadcast({
+            "type": "USER_PRESENCE",
+            "userId": user_id,
+            "isOnline": False,
+        })
