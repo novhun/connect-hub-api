@@ -52,30 +52,67 @@ def decode_access_token(token: str) -> Optional[Dict[str, Any]]:
         return None
 
 
+import json
+import urllib.request
+
 def verify_google_token(token: str) -> Optional[Dict[str, Any]]:
     """
-    Verify Google OAuth2 ID Token.
-    Returns user info dict (email, name, picture, sub) if valid, None otherwise.
+    Verify real Google OAuth2 Token (ID Token or Access Token) directly with Google servers.
+    Returns user info dict (google_id, email, name, avatar, email_verified) if valid, None otherwise.
     """
+    if not token or not token.strip():
+        return None
+
+    # 1. Verify Google ID token via google-auth library
     try:
         audience = settings.GOOGLE_CLIENT_ID if settings.GOOGLE_CLIENT_ID else None
         req = google_requests.Request()
         id_info = id_token.verify_oauth2_token(token, req, audience)
-        return {
-            "google_id": id_info.get("sub"),
-            "email": id_info.get("email"),
-            "name": id_info.get("name"),
-            "avatar": id_info.get("picture"),
-            "email_verified": id_info.get("email_verified", False),
-        }
-    except Exception:
-        if settings.DEBUG and token.startswith("test-google-token-"):
-            mock_id = token.replace("test-google-token-", "")
+        if id_info and id_info.get("email"):
             return {
-                "google_id": f"google-{mock_id}",
-                "email": f"user-{mock_id}@gmail.com",
-                "name": f"Google User {mock_id}",
-                "avatar": f"https://api.dicebear.com/7.x/avataaars/svg?seed={mock_id}",
-                "email_verified": True,
+                "google_id": id_info.get("sub"),
+                "email": id_info.get("email"),
+                "name": id_info.get("name") or id_info.get("email", "").split("@")[0],
+                "avatar": id_info.get("picture"),
+                "email_verified": id_info.get("email_verified", False),
             }
-        return None
+    except Exception:
+        pass
+
+    # 2. Verify Google UserInfo API (for Google Access Tokens from OAuth2 / TokenClient)
+    try:
+        url = "https://www.googleapis.com/oauth2/v3/userinfo"
+        req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
+        with urllib.request.urlopen(req, timeout=5) as response:
+            if response.status == 200:
+                data = json.loads(response.read().decode("utf-8"))
+                if data and data.get("email"):
+                    return {
+                        "google_id": data.get("sub"),
+                        "email": data.get("email"),
+                        "name": data.get("name") or data.get("email", "").split("@")[0],
+                        "avatar": data.get("picture"),
+                        "email_verified": data.get("email_verified", False),
+                    }
+    except Exception:
+        pass
+
+    # 3. Verify Google TokenInfo API (for Google ID Tokens)
+    try:
+        url = f"https://oauth2.googleapis.com/tokeninfo?id_token={token}"
+        req = urllib.request.Request(url)
+        with urllib.request.urlopen(req, timeout=5) as response:
+            if response.status == 200:
+                data = json.loads(response.read().decode("utf-8"))
+                if data and data.get("email"):
+                    return {
+                        "google_id": data.get("sub"),
+                        "email": data.get("email"),
+                        "name": data.get("name") or data.get("email", "").split("@")[0],
+                        "avatar": data.get("picture"),
+                        "email_verified": data.get("email_verified", False),
+                    }
+    except Exception:
+        pass
+
+    return None
