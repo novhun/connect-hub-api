@@ -278,6 +278,23 @@ async def websocket_chat_endpoint(websocket: WebSocket, user_id: str, token: str
                                 relay["callerAvatar"] = user_obj.avatar
                             await chat_manager.send_to_users(member_ids, relay, exclude_user_id=user_id)
 
+                            try:
+                                from app.modules.notifications.services import notification_service
+                                call_kind = msg.get("callType", "call")
+                                g_name = msg.get("groupName", "the group")
+                                for m_id in member_ids:
+                                    if m_id != user_id:
+                                        await notification_service.create_and_send_notification(
+                                            db=session,
+                                            recipient_id=m_id,
+                                            sender_id=user_id,
+                                            type="call",
+                                            content=f"started a {call_kind} call in {g_name}",
+                                            target=msg.get("roomId", group_id),
+                                        )
+                            except Exception:
+                                pass
+
                 elif msg_type in ["GROUP_CALL_END", "GROUP_CALL_LEAVE", "GROUP_CALL_JOIN"]:
                     group_id = msg.get("groupId")
                     if group_id:
@@ -300,6 +317,20 @@ async def websocket_chat_endpoint(websocket: WebSocket, user_id: str, token: str
                             "roomId": msg.get("roomId"),
                             "targetUserId": target_id,
                         }))
+                        try:
+                            from app.modules.notifications.services import notification_service
+                            async with AsyncSessionLocal() as session:
+                                await notification_service.create_and_send_notification(
+                                    db=session,
+                                    recipient_id=target_id,
+                                    sender_id=user_id,
+                                    type="call",
+                                    content=f"missed a {msg.get('callType', 'audio')} call",
+                                    target=user_id,
+                                )
+                        except Exception:
+                            pass
+
             except Exception as e:
                 logger.error(f"Error handling websocket frame from {user_id}: {e}")
     except WebSocketDisconnect:

@@ -59,12 +59,60 @@ class FriendService:
             existing.status = "accepted"
             existing.responded_at = datetime.now(timezone.utc)
             await db.commit()
+
+            try:
+                from app.modules.notifications.services import notification_service
+                await notification_service.create_and_send_notification(
+                    db=db,
+                    recipient_id=receiver_id,
+                    sender_id=current_user.id,
+                    type="friend_accept",
+                    content="accepted your friend request",
+                    target=current_user.id,
+                )
+                from app.modules.chat.services import chat_manager
+                await chat_manager.send_personal_message(
+                    receiver_id,
+                    {
+                        "type": "FRIEND_REQUEST_ACCEPTED",
+                        "requestId": existing.id,
+                        "userId": current_user.id,
+                    },
+                )
+            except Exception:
+                pass
+
             return FriendStatusResponse(status="friends", requestId=existing.id)
 
         new_request = FriendRequest(sender_id=current_user.id, receiver_id=receiver_id, status="pending")
         db.add(new_request)
         await db.commit()
         await db.refresh(new_request)
+
+        try:
+            from app.modules.notifications.services import notification_service
+            await notification_service.create_and_send_notification(
+                db=db,
+                recipient_id=receiver_id,
+                sender_id=current_user.id,
+                type="friend_request",
+                content="sent you a friend request",
+                target=current_user.id,
+            )
+            from app.modules.chat.services import chat_manager
+            await chat_manager.send_personal_message(
+                receiver_id,
+                {
+                    "type": "FRIEND_REQUEST_RECEIVED",
+                    "requestId": new_request.id,
+                    "senderId": current_user.id,
+                    "senderName": current_user.name,
+                    "senderAvatar": current_user.avatar,
+                },
+            )
+        except Exception:
+            pass
+
         return FriendStatusResponse(status="pending_sent", requestId=new_request.id)
 
     async def respond_request(
@@ -84,11 +132,35 @@ class FriendService:
             req.status = "accepted"
             req.responded_at = datetime.now(timezone.utc)
             await db.commit()
+
+            try:
+                from app.modules.notifications.services import notification_service
+                await notification_service.create_and_send_notification(
+                    db=db,
+                    recipient_id=req.sender_id,
+                    sender_id=current_user.id,
+                    type="friend_accept",
+                    content="accepted your friend request",
+                    target=current_user.id,
+                )
+                from app.modules.chat.services import chat_manager
+                await chat_manager.send_personal_message(
+                    req.sender_id,
+                    {
+                        "type": "FRIEND_REQUEST_ACCEPTED",
+                        "requestId": req.id,
+                        "userId": current_user.id,
+                    },
+                )
+            except Exception:
+                pass
+
             return FriendStatusResponse(status="friends", requestId=req.id)
 
         await db.delete(req)
         await db.commit()
         return FriendStatusResponse(status="none")
+
 
     async def cancel_request(self, db: AsyncSession, current_user: User, request_id: str) -> bool:
         stmt = select(FriendRequest).where(

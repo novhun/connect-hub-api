@@ -536,6 +536,21 @@ class ChatService:
         await db.commit()
         summary = await self.get_group_chat(db, current_user.id, group_id)
 
+        if added_uids:
+            try:
+                from app.modules.notifications.services import notification_service
+                for uid in added_uids:
+                    await notification_service.create_and_send_notification(
+                        db=db,
+                        recipient_id=uid,
+                        sender_id=current_user.id,
+                        type="group",
+                        content=f"invited you to join {summary.name}",
+                        target=group_id,
+                    )
+            except Exception:
+                pass
+
         await chat_manager.send_to_users(
             list(existing_uids),
             {

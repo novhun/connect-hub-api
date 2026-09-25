@@ -273,6 +273,19 @@ class PostService:
             orig_post = orig_res.scalars().first()
             if orig_post:
                 orig_post.shares_count = (orig_post.shares_count or 0) + 1
+                if orig_post.author_id != current_user.id:
+                    try:
+                        from app.modules.notifications.services import notification_service
+                        await notification_service.create_and_send_notification(
+                            db=db,
+                            recipient_id=orig_post.author_id,
+                            sender_id=current_user.id,
+                            type="share",
+                            content="shared your post",
+                            target=new_post.id,
+                        )
+                    except Exception as e:
+                        pass
 
         if post_in.images:
             for img in post_in.images:
@@ -306,6 +319,24 @@ class PostService:
                 db.add(new_rxn)
             await db.commit()
 
+            try:
+                post_stmt = select(Post).where(Post.id == post_id)
+                post_res = await db.execute(post_stmt)
+                target_post = post_res.scalars().first()
+                if target_post and target_post.author_id != current_user_id:
+                    from app.modules.notifications.services import notification_service
+                    rxn_label = f"reacted to your post" if reaction_type != "like" else "liked your post"
+                    await notification_service.create_and_send_notification(
+                        db=db,
+                        recipient_id=target_post.author_id,
+                        sender_id=current_user_id,
+                        type="like",
+                        content=rxn_label,
+                        target=post_id,
+                    )
+            except Exception as e:
+                pass
+
         return await self.get_post_by_id(db, post_id, current_user_id)
 
     async def add_comment(
@@ -328,6 +359,40 @@ class PostService:
         )
         db.add(new_comment)
         await db.commit()
+
+        try:
+            from app.modules.notifications.services import notification_service
+            post_stmt = select(Post).where(Post.id == post_id)
+            post_res = await db.execute(post_stmt)
+            target_post = post_res.scalars().first()
+
+            parent_author_id = None
+            if parent_id:
+                parent_stmt = select(Comment).where(Comment.id == parent_id)
+                parent_res = await db.execute(parent_stmt)
+                parent_comment = parent_res.scalars().first()
+                if parent_comment and parent_comment.user_id != current_user.id:
+                    parent_author_id = parent_comment.user_id
+                    await notification_service.create_and_send_notification(
+                        db=db,
+                        recipient_id=parent_comment.user_id,
+                        sender_id=current_user.id,
+                        type="comment",
+                        content="replied to your comment",
+                        target=post_id,
+                    )
+
+            if target_post and target_post.author_id != current_user.id and target_post.author_id != parent_author_id:
+                await notification_service.create_and_send_notification(
+                    db=db,
+                    recipient_id=target_post.author_id,
+                    sender_id=current_user.id,
+                    type="comment",
+                    content="commented on your post",
+                    target=post_id,
+                )
+        except Exception as e:
+            pass
 
         return await self.get_post_by_id(db, post_id, current_user.id)
 
@@ -354,7 +419,26 @@ class PostService:
                 )
                 db.add(new_like)
             await db.commit()
+
+            try:
+                c_stmt = select(Comment).where(Comment.id == comment_id)
+                c_res = await db.execute(c_stmt)
+                target_comment = c_res.scalars().first()
+                if target_comment and target_comment.user_id != current_user_id:
+                    from app.modules.notifications.services import notification_service
+                    await notification_service.create_and_send_notification(
+                        db=db,
+                        recipient_id=target_comment.user_id,
+                        sender_id=current_user_id,
+                        type="like",
+                        content="reacted to your comment",
+                        target=target_comment.post_id,
+                    )
+            except Exception as e:
+                pass
+
             return {"isLiked": True, "userReaction": reaction_type}
+
 
     async def toggle_comment_like(
         self, db: AsyncSession, current_user_id: str, comment_id: str

@@ -79,6 +79,70 @@ class StoryService:
             await db.commit()
         return True
 
+    async def react_to_story(
+        self, db: AsyncSession, current_user: User, story_id: str
+    ) -> bool:
+        stmt = select(Story).where(Story.id == story_id)
+        result = await db.execute(stmt)
+        story = result.scalars().first()
+        if not story:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Story not found")
+
+        if story.user_id != current_user.id:
+            try:
+                from app.modules.notifications.services import notification_service
+                await notification_service.create_and_send_notification(
+                    db=db,
+                    recipient_id=story.user_id,
+                    sender_id=current_user.id,
+                    type="like",
+                    content="reacted to your story",
+                    target=story_id,
+                )
+            except Exception:
+                pass
+        return True
+
+    async def reply_to_story(
+        self, db: AsyncSession, current_user: User, story_id: str, reply_text: str
+    ) -> bool:
+        stmt = select(Story).where(Story.id == story_id)
+        result = await db.execute(stmt)
+        story = result.scalars().first()
+        if not story:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Story not found")
+
+        clean_text = reply_text.strip()
+        if not clean_text:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Reply cannot be empty")
+
+        if story.user_id != current_user.id:
+            try:
+                from app.modules.chat.services import chat_service
+                await chat_service.send_message(
+                    db=db,
+                    sender_id=current_user.id,
+                    receiver_id=story.user_id,
+                    text=f"Replied to your story: {clean_text}",
+                )
+            except Exception:
+                pass
+
+            try:
+                from app.modules.notifications.services import notification_service
+                snippet = clean_text if len(clean_text) <= 30 else clean_text[:27] + "..."
+                await notification_service.create_and_send_notification(
+                    db=db,
+                    recipient_id=story.user_id,
+                    sender_id=current_user.id,
+                    type="comment",
+                    content=f"replied to your story: '{snippet}'",
+                    target=story_id,
+                )
+            except Exception:
+                pass
+        return True
+
     async def delete_story(self, db: AsyncSession, current_user_id: str, story_id: str) -> bool:
         stmt = select(Story).where(Story.id == story_id)
         result = await db.execute(stmt)
@@ -93,3 +157,4 @@ class StoryService:
 
 
 story_service = StoryService()
+

@@ -39,7 +39,36 @@ async def mark_story_viewed(
     return await story_controller.mark_viewed(db, current_user, story_id)
 
 
+@router.post("/{story_id}/react")
+async def react_to_story(
+    story_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """React to a story and notify the author."""
+    return await story_controller.react_story(db, current_user, story_id)
+
+
+from pydantic import BaseModel
+
+
+class StoryReplyRequest(BaseModel):
+    text: str
+
+
+@router.post("/{story_id}/reply")
+async def reply_to_story(
+    story_id: str,
+    payload: StoryReplyRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Reply to a story via direct message and notify the author."""
+    return await story_controller.reply_story(db, current_user, story_id, payload.text)
+
+
 @router.delete("/{story_id}")
+
 async def delete_story(
     story_id: str,
     current_user: User = Depends(get_current_user),

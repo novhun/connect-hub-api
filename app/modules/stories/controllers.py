@@ -21,9 +21,18 @@ class StoryController:
         await story_service.mark_story_viewed(db, current_user.id, story_id)
         return {"success": True}
 
+    async def react_story(self, db: AsyncSession, current_user: User, story_id: str) -> dict:
+        await story_service.react_to_story(db, current_user, story_id)
+        return {"success": True}
+
+    async def reply_story(self, db: AsyncSession, current_user: User, story_id: str, reply_text: str) -> dict:
+        await story_service.reply_to_story(db, current_user, story_id, reply_text)
+        return {"success": True}
+
     async def delete_story(self, db: AsyncSession, current_user: User, story_id: str) -> dict:
         await story_service.delete_story(db, current_user.id, story_id)
         return {"success": True, "message": "Story deleted successfully"}
 
 
 story_controller = StoryController()
+

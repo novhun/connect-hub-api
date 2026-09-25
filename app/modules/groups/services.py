@@ -117,6 +117,23 @@ class GroupService:
             member = GroupMember(group_id=group_id, user_id=current_user.id, role="member")
             db.add(member)
             await db.commit()
+
+            try:
+                g_stmt = select(Group).where(Group.id == group_id)
+                g_res = await db.execute(g_stmt)
+                g_obj = g_res.scalars().first()
+                if g_obj and g_obj.creator_id != current_user.id:
+                    from app.modules.notifications.services import notification_service
+                    await notification_service.create_and_send_notification(
+                        db=db,
+                        recipient_id=g_obj.creator_id,
+                        sender_id=current_user.id,
+                        type="group",
+                        content=f"joined your group {g_obj.name}",
+                        target=group_id,
+                    )
+            except Exception:
+                pass
         return await self.get_group_by_id(db, group_id, current_user.id)
 
     async def leave_group(
