@@ -11,7 +11,7 @@ from app.core.database import AsyncSessionLocal, init_db, async_engine, Base
 from app.core.security import get_password_hash
 from app.modules.auth.models import User
 from app.modules.calls.models import CallSession
-from app.modules.chat.models import Message
+from app.modules.chat.models import GroupChat, GroupChatMember, GroupChatMessage, Message
 from app.modules.groups.models import Group, GroupMember
 from app.modules.notifications.models import Notification
 from app.modules.posts.models import Comment, Post, PostMedia, Reaction, SavedPost
@@ -311,6 +311,83 @@ async def seed():
             ),
         ]
         db.add_all(msgs)
+
+        # 5b. Seed Group Chats
+        gc_dev = GroupChat(
+            id="gc-dev-team",
+            name="Tech & Full-Stack Guild 💻",
+            avatar="https://api.dicebear.com/7.x/identicon/svg?seed=TechGuild",
+            description="Official developer guild for real-time collaboration, API architecture, and code reviews.",
+            creator_id=sokun.id,
+            invite_code="tech2026",
+            created_at=now - timedelta(days=2),
+            updated_at=now - timedelta(minutes=15),
+        )
+        gc_design = GroupChat(
+            id="gc-design-team",
+            name="Design & Creative Circle 🎨",
+            avatar="https://api.dicebear.com/7.x/identicon/svg?seed=DesignCircle",
+            description="Discussing typography, modern glassmorphic designs, micro-interactions, and design tokens.",
+            creator_id=dara.id,
+            invite_code="design2026",
+            created_at=now - timedelta(days=3),
+            updated_at=now - timedelta(hours=2),
+        )
+        db.add_all([gc_dev, gc_design])
+        await db.flush()
+
+        # Group Chat Members
+        gc_members = [
+            GroupChatMember(group_chat_id=gc_dev.id, user_id=sokun.id, role="admin", joined_at=now - timedelta(days=2)),
+            GroupChatMember(group_chat_id=gc_dev.id, user_id=dara.id, role="member", joined_at=now - timedelta(days=2)),
+            GroupChatMember(group_chat_id=gc_dev.id, user_id=vireak.id, role="member", joined_at=now - timedelta(days=1)),
+            GroupChatMember(group_chat_id=gc_dev.id, user_id=sokunthea.id, role="member", joined_at=now - timedelta(days=1)),
+
+            GroupChatMember(group_chat_id=gc_design.id, user_id=dara.id, role="admin", joined_at=now - timedelta(days=3)),
+            GroupChatMember(group_chat_id=gc_design.id, user_id=sokun.id, role="member", joined_at=now - timedelta(days=3)),
+            GroupChatMember(group_chat_id=gc_design.id, user_id=bopha.id, role="member", joined_at=now - timedelta(days=2)),
+        ]
+        db.add_all(gc_members)
+
+        # Group Chat Messages
+        gc_messages = [
+            GroupChatMessage(
+                group_chat_id=gc_dev.id,
+                sender_id=sokun.id,
+                text="Welcome everyone to the Tech Guild! We now support group chat messaging, invite links, and group calling! 🚀",
+                message_type="text",
+                created_at=now - timedelta(hours=3),
+            ),
+            GroupChatMessage(
+                group_chat_id=gc_dev.id,
+                sender_id=dara.id,
+                text="Awesome! The real-time WebSocket relay is working seamlessly. Ready to test group audio & video calls whenever you are!",
+                message_type="text",
+                created_at=now - timedelta(hours=2),
+            ),
+            GroupChatMessage(
+                group_chat_id=gc_dev.id,
+                sender_id=vireak.id,
+                text="Love this! Can anyone join with the invite code?",
+                message_type="text",
+                created_at=now - timedelta(minutes=45),
+            ),
+            GroupChatMessage(
+                group_chat_id=gc_dev.id,
+                sender_id=sokun.id,
+                text="Yes! You can invite friends directly or share the invite code tech2026. Try tapping the call button at the top to start a group call!",
+                message_type="text",
+                created_at=now - timedelta(minutes=15),
+            ),
+            GroupChatMessage(
+                group_chat_id=gc_design.id,
+                sender_id=dara.id,
+                text="Hey designers! New tokens and color gradients have been uploaded. Check them out!",
+                message_type="text",
+                created_at=now - timedelta(hours=2),
+            ),
+        ]
+        db.add_all(gc_messages)
 
         # 6. Seed Call Sessions
         calls = [

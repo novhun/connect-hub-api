@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -14,7 +14,9 @@ class CallSession(Base):
 
     id = Column(String(64), primary_key=True, default=generate_uuid, index=True)
     caller_id = Column(String(64), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    receiver_id = Column(String(64), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    receiver_id = Column(String(64), ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
+    group_id = Column(String(64), nullable=True, index=True)
+    is_group_call = Column(Boolean, default=False)
     room_id = Column(String(64), default=generate_uuid, index=True)
     call_type = Column(String(20), default="audio", nullable=False)  # 'audio', 'video'
     status = Column(String(20), default="initiating", nullable=False)  # 'initiating', 'ringing', 'connected', 'completed', 'missed', 'declined'

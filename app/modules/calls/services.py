@@ -45,9 +45,16 @@ class CallService:
     async def initiate_call(
         self, db: AsyncSession, caller: User, req: CallInitiateRequest
     ) -> CallSessionResponse:
+        is_group = bool(req.groupId)
+        receiver_id = req.receiverId
+        if not receiver_id and is_group:
+            receiver_id = caller.id
+
         session = CallSession(
             caller_id=caller.id,
-            receiver_id=req.receiverId,
+            receiver_id=receiver_id,
+            group_id=req.groupId,
+            is_group_call=is_group,
             call_type=req.callType,
             status="initiating",
         )
@@ -131,6 +138,8 @@ class CallService:
                     status=log_status,  # type: ignore
                     duration=format_duration(s.duration_seconds),
                     callType=s.call_type,  # type: ignore
+                    groupId=s.group_id,
+                    isGroupCall=bool(s.is_group_call),
                 )
             )
         return logs

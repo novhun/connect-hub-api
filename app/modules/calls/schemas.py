@@ -9,7 +9,8 @@ CallStatus = Literal["initiating", "ringing", "connected", "completed", "missed"
 class CallInitiateRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
-    receiverId: str = Field(..., validation_alias="receiverId")
+    receiverId: Optional[str] = Field(default=None, validation_alias="receiverId")
+    groupId: Optional[str] = Field(default=None, validation_alias="groupId")
     callType: CallType = Field(default="audio", validation_alias="callType")
 
 
@@ -25,7 +26,9 @@ class CallSessionResponse(BaseModel):
 
     id: str
     callerId: str = Field(..., validation_alias="caller_id")
-    receiverId: str = Field(..., validation_alias="receiver_id")
+    receiverId: Optional[str] = Field(default=None, validation_alias="receiver_id")
+    groupId: Optional[str] = Field(default=None, validation_alias="group_id")
+    isGroupCall: bool = Field(default=False, validation_alias="is_group_call")
     roomId: str = Field(..., validation_alias="room_id")
     callType: CallType = Field(..., validation_alias="call_type")
     status: CallStatus
@@ -42,3 +45,6 @@ class CallLogResponse(BaseModel):
     status: Literal["missed", "completed", "declined"]
     duration: Optional[str] = None
     callType: CallType = Field(..., validation_alias="call_type")
+    groupId: Optional[str] = None
+    groupName: Optional[str] = None
+    isGroupCall: bool = False
