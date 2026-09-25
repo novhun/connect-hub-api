@@ -50,6 +50,20 @@ class CallService:
         if not receiver_id and is_group:
             receiver_id = caller.id
 
+        if is_group and req.groupId:
+            stmt = (
+                select(CallSession)
+                .where(
+                    CallSession.group_id == req.groupId,
+                    CallSession.status.in_(["initiating", "ringing", "connected"]),
+                )
+                .order_by(CallSession.created_at.desc())
+            )
+            res = await db.execute(stmt)
+            existing = res.scalars().first()
+            if existing:
+                return CallSessionResponse.model_validate(existing)
+
         session = CallSession(
             caller_id=caller.id,
             receiver_id=receiver_id,
