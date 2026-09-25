@@ -191,7 +191,6 @@ SIGNAL_RELAY_TYPES = {
     "WEBRTC_OFFER",
     "WEBRTC_ANSWER",
     "WEBRTC_ICE_CANDIDATE",
-    "GROUP_CALL_JOIN",
 }
 
 
@@ -279,7 +278,7 @@ async def websocket_chat_endpoint(websocket: WebSocket, user_id: str, token: str
                                 relay["callerAvatar"] = user_obj.avatar
                             await chat_manager.send_to_users(member_ids, relay, exclude_user_id=user_id)
 
-                elif msg_type in ["GROUP_CALL_END", "GROUP_CALL_LEAVE"]:
+                elif msg_type in ["GROUP_CALL_END", "GROUP_CALL_LEAVE", "GROUP_CALL_JOIN"]:
                     group_id = msg.get("groupId")
                     if group_id:
                         async with AsyncSessionLocal() as session:
