@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from typing import AsyncGenerator, Optional
 from sqlalchemy.ext.asyncio import (
@@ -49,8 +50,13 @@ else:
     engine_kwargs["pool_size"] = 10
     engine_kwargs["max_overflow"] = 20
     # Handle Supabase / PgBouncer transaction pooler mode
-    if "postgresql+asyncpg" in normalized_url and (":6543" in normalized_url or "pooler" in normalized_url):
-        engine_kwargs["connect_args"] = {"statement_cache_size": 0}
+    connect_args = {}
+    if "postgresql+asyncpg" in normalized_url:
+        if ":6543" in normalized_url or "pooler" in normalized_url or "supabase" in normalized_url:
+            connect_args["statement_cache_size"] = 0
+            connect_args["ssl"] = "require"
+    if connect_args:
+        engine_kwargs["connect_args"] = connect_args
 
 async_engine: AsyncEngine = create_async_engine(normalized_url, **engine_kwargs)
 
@@ -91,7 +97,12 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def init_db() -> None:
-    """Initialize database tables."""
-    async with async_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    logger.info("Database schema initialized successfully.")
+    """Initialize database tables with timeout protection."""
+    try:
+        async with asyncio.timeout(15):
+            async with async_engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+        logger.info("Database schema initialized successfully.")
+    except Exception as e:
+        logger.warning(f"Database schema initialization warning: {e}")
+
